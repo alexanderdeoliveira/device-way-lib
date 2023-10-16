@@ -47,6 +47,8 @@ internal class ServiceLocatorImpl(
             .build()
     )}
 
+    override val saveInitialConfigUseCase by lazy { SaveInitialConfgUseCaseImpl(repository) }
+
     companion object {
 
         private var instance: ServiceLocatorImpl? = null

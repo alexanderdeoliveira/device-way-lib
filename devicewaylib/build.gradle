@@ -5,6 +5,8 @@ plugins {
     id "kotlin-kapt"
 }
 
+apply from: "./publish_maven.gradle"
+
 android {
     namespace 'com.waydatasolution.devicewaylib'
     compileSdk 34

@@ -10,5 +10,8 @@ internal interface DeviceWayRepository {
         onFinished: () -> Unit
     )
     suspend fun sendData()
+    suspend fun saveInitialConfig(
+        initialConfig: InitialConfig
+    )
     suspend fun getInitialConfig(): InitialConfig
 }

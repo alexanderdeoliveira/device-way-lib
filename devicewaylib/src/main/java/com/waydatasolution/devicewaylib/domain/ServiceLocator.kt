@@ -14,4 +14,5 @@ internal interface ServiceLocator {
     val readDataUseCase: ReadDataUseCase
     val sendDataUseCase: SendDataUseCase
     val scheduleSendDataUseCase: ScheduleSendDataUseCase
+    val saveInitialConfigUseCase: SaveInitialConfigUseCase
 }

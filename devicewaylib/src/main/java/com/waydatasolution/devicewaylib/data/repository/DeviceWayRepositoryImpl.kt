@@ -42,6 +42,14 @@ internal class DeviceWayRepositoryImpl(
         }
     }
 
+    override suspend fun saveInitialConfig(
+        initialConfig: InitialConfig
+    ) {
+        deviceWayLocalDataSource.saveConfig(
+            initialConfig
+        )
+    }
+
     private suspend fun sendDataPerBlock(dataList: List<Data>): Boolean {
         val response = deviceWayRemoteDataSource.sendData(
             SendDataRequest(dataList.toDataRequest())

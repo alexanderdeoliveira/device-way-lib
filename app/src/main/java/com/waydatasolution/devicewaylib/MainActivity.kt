@@ -16,7 +16,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         binding.btnStartScan.setOnClickListener {
-            DeviceWayLib.init(this@MainActivity)
+            DeviceWayLib.init(
+                this@MainActivity,
+                "",
+                0,
+                0,
+                0,
+                0
+            )
         }
     }
 }
