@@ -1,19 +1,19 @@
 package com.waydatasolution.devicewaylib.data.dao
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.waydatasolution.devicewaylib.data.model.Mission
 
 @Dao
 internal interface MissionDao {
-    @Insert
+    @Insert (onConflict = OnConflictStrategy.REPLACE)
     fun insert(mission: Mission)
 
-    @Delete
-    fun delete(mission: Mission)
+    @Query("DELETE FROM DATA")
+    fun deleteAll()
 
     @Query("SELECT * FROM MISSION WHERE bluetoothId = :bluetoothId")
-    fun getLastMissionOfId(bluetoothId: String): List<Mission>
+    fun getMissionById(bluetoothId: String): Mission?
 }

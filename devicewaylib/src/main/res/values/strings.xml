@@ -1,0 +1,3 @@
+<resources>
+    <string name="network_error_message">Sem conexão com a internet</string>
+</resources>

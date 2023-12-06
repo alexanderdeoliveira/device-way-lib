@@ -6,12 +6,14 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.waydatasolution.devicewaylib.data.dao.DataDao
 import com.waydatasolution.devicewaylib.data.dao.MissionDao
+import com.waydatasolution.devicewaylib.data.dao.QueryParamDao
 import com.waydatasolution.devicewaylib.data.model.Data
 import com.waydatasolution.devicewaylib.data.model.Mission
+import com.waydatasolution.devicewaylib.data.model.QueryParam
 import com.waydatasolution.devicewaylib.util.DATA_BASE_NAME
 
 @Database(
-    entities = [Data::class, Mission::class],
+    entities = [Data::class, Mission::class, QueryParam::class],
     version = 1,
     exportSchema = true
 )
@@ -19,6 +21,7 @@ import com.waydatasolution.devicewaylib.util.DATA_BASE_NAME
 internal abstract class DeviceWayLibDb : RoomDatabase() {
     abstract fun dataDao(): DataDao
     abstract fun missionDao(): MissionDao
+    abstract fun queryParamDao(): QueryParamDao
 
     companion object {
         @Volatile

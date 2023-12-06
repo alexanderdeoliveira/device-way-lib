@@ -1,12 +1,17 @@
 package com.waydatasolution.devicewaylib
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
+import android.os.Binder
 import android.os.IBinder
-import android.widget.Toast
+import androidx.core.app.NotificationCompat
 import com.TZONE.Bluetooth.BLE
 import com.TZONE.Bluetooth.ILocalBluetoothCallBack
 import com.TZONE.Bluetooth.Temperature.BroadcastService
@@ -15,13 +20,21 @@ import com.waydatasolution.devicewaylib.domain.ReadDataUseCase
 import com.waydatasolution.devicewaylib.domain.SaveDataUseCase
 import com.waydatasolution.devicewaylib.domain.ScheduleSendDataUseCase
 import com.waydatasolution.devicewaylib.domain.ServiceLocatorImpl
+import com.waydatasolution.devicewaylib.util.BluetoothUtil
+import com.waydatasolution.devicewaylib.util.CHANNEL_ID
+import com.waydatasolution.devicewaylib.util.NOTIFICATION_ID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class DeviceWayService: Service(), ILocalBluetoothCallBack {
 
-    private lateinit var bluetoothAdapter: BluetoothAdapter
+    private var isDebug: Boolean = true
+    private var mTimer: Long = 0
+    private var sensorIdList: ArrayList<String> = arrayListOf()
+
     private lateinit var saveDataUseCase: SaveDataUseCase
     private lateinit var readDataUseCase: ReadDataUseCase
     private lateinit var scheduleSendEventsUseCase: ScheduleSendDataUseCase
@@ -32,55 +45,81 @@ class DeviceWayService: Service(), ILocalBluetoothCallBack {
 
     private val deviceList: MutableList<Pair<String,BluetoothDevice>> = mutableListOf()
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
+    private var job: Job? = null
+
+    private var bluetoothAdapter: BluetoothAdapter? = null
+
+    override fun onBind(intent: Intent): IBinder {
+        return DeviceWayBinder()
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Toast.makeText(this, "service starting", Toast.LENGTH_SHORT).show()
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        intent.apply {
+            isDebug = getBooleanExtra(IS_DEBUG_EXTRA, true)
+            mTimer = getLongExtra(TIMER_EXTRA, 0)
+            sensorIdList = getStringArrayListExtra(SENSOR_ID_LIST_EXTRA) as ArrayList<String>
+        }
+
+        saveDataUseCase = ServiceLocatorImpl.getInstance(applicationContext, isDebug).saveDataUseCase
+        readDataUseCase = ServiceLocatorImpl.getInstance(applicationContext, isDebug).readDataUseCase
+        scheduleSendEventsUseCase = ServiceLocatorImpl.getInstance(applicationContext, isDebug).scheduleSendDataUseCase
 
         startForeground()
         return START_STICKY
     }
 
     private fun startForeground() {
-//        val pendingIntent: PendingIntent =
-//            Intent(this, BluetoothActivity::class.java).let { notificationIntent ->
-//                PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
-//            }
-//
-//        val notification: Notification = Notification.Builder(this, "0")
-//            .setContentTitle("Title")
-//            .setContentText("Message")
-//            .setSmallIcon(androidx.core.R.drawable.ic_call_answer)
-//            .setContentIntent(pendingIntent)
-//            .setTicker("Ticker")
-//            .build()
-//
-//        startForeground(1, notification)
-        saveDataUseCase = ServiceLocatorImpl.getInstance(this).saveDataUseCase
-        readDataUseCase = ServiceLocatorImpl.getInstance(this).readDataUseCase
-        scheduleSendEventsUseCase = ServiceLocatorImpl.getInstance(this).scheduleSendDataUseCase
-
-        val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bluetoothAdapter = bluetoothManager.adapter
-
-        scanForDevices()
+        createNotification(MainActivityLib::class.java)
+        if (deviceList.isEmpty()) {
+            scanForDevices()
+        } else {
+            readAndSaveSamples()
+        }
     }
 
     private fun scanForDevices() {
-        deviceList.clear()
-        CoroutineScope(Dispatchers.Main).launch {
-            if (!isScanning) {
-                if (!isInit)
-                    isInit = broadcastService.Init(bluetoothAdapter, this@DeviceWayService)
 
-                if (isInit) {
-                    isScanning = true
-                    broadcastService.StartScan()
+        if (BluetoothUtil.isBluetoothConnected()) {
+            updateNotification(
+                MainActivityLib::class.java,
+                DeviceWayLib.DeviceWayStatus.SEARCHING
+            )
+
+            if (bluetoothAdapter == null) {
+                val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                bluetoothAdapter = bluetoothManager.adapter
+            }
+
+            CoroutineScope(Dispatchers.Main).launch {
+                if (!isScanning) {
+                    if (!isInit)
+                        isInit = broadcastService.Init(bluetoothAdapter, this@DeviceWayService)
+
+                    if (isInit) {
+                        isScanning = true
+                        broadcastService.StartScan()
+                    }
                 }
             }
+        } else {
+            updateNotification(
+                MainActivityLib::class.java,
+                DeviceWayLib.DeviceWayStatus.BLUETOOTH_DISABLED
+            )
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        job?.cancel()
+        if (isInit) {
+            broadcastService.StopScan()
+        }
+    }
+
+    override fun unbindService(conn: ServiceConnection) {
+        super.unbindService(conn)
+        job?.cancel()
     }
 
     override fun OnEntered(ble: BLE) {
@@ -92,12 +131,21 @@ class DeviceWayService: Service(), ILocalBluetoothCallBack {
     }
 
     override fun OnExited(ble: BLE) {
-        Toast.makeText(this, "Scan exited", Toast.LENGTH_SHORT).show()
+        updateNotification(
+            MainActivityLib::class.java,
+            DeviceWayLib.DeviceWayStatus.STANDBY
+        )
     }
 
     override fun OnScanComplete() {
-        Toast.makeText(this, "Scan completed", Toast.LENGTH_SHORT).show()
-        readAnsSaveSamples()
+        if (deviceList.isEmpty()) {
+            updateNotification(
+                MainActivityLib::class.java,
+                DeviceWayLib.DeviceWayStatus.NOT_FOUND
+            )
+
+            restartRead()
+        }
     }
 
     private fun processBLE(ble: BLE) {
@@ -105,17 +153,33 @@ class DeviceWayService: Service(), ILocalBluetoothCallBack {
         device.fromScanData(ble)
 
         if (!device.SN.isNullOrEmpty()) {
-            deviceList.removeIf {
-                it.first == device.SN
-            }
             deviceList.add(Pair(device.SN, device))
+            if (sensorIdList.size == deviceList.size) {
+                broadcastService.StopScan()
+                onComplete()
+            }
         }
     }
 
-    private fun readAnsSaveSamples() {
+    private fun onComplete() {
+        readAndSaveSamples()
+    }
+
+    private fun readAndSaveSamples() {
+        updateNotification(
+            MainActivityLib::class.java,
+            DeviceWayLib.DeviceWayStatus.READING
+        )
         deviceList.map {
             readSamplesByDevice(it.second) {
-                saveSamplesByDevice(it.second)
+                if (it.second.samples.isNotEmpty()) {
+                    saveSamplesByDevice(it.second)
+                } else {
+                    updateNotification(
+                        MainActivityLib::class.java,
+                        DeviceWayLib.DeviceWayStatus.NO_DATA
+                    )
+                }
             }
         }
     }
@@ -127,7 +191,7 @@ class DeviceWayService: Service(), ILocalBluetoothCallBack {
         CoroutineScope(Dispatchers.Main).launch {
             readDataUseCase.invoke(
                 this@DeviceWayService,
-                bluetoothAdapter,
+                bluetoothAdapter!!,
                 device,
                 callback
             )
@@ -135,13 +199,104 @@ class DeviceWayService: Service(), ILocalBluetoothCallBack {
     }
 
     private fun saveSamplesByDevice(device: BluetoothDevice) {
+        updateNotification(
+            MainActivityLib::class.java,
+            DeviceWayLib.DeviceWayStatus.SAVING
+        )
         CoroutineScope(Dispatchers.IO).launch {
-            saveDataUseCase.invoke(
-                device.SN,
-                device.samples.subList(0, 100)
-            ) {
-                scheduleSendEventsUseCase.invoke()
+            saveDataUseCase.invoke(device) {
+                finishSaving()
             }
         }
+    }
+
+    private fun finishSaving() {
+        updateNotification(
+            MainActivityLib::class.java,
+            DeviceWayLib.DeviceWayStatus.STANDBY
+        )
+        scheduleSendEventsUseCase.invoke()
+        restartRead()
+    }
+
+    private fun restartRead() {
+        isScanning = false
+        deviceList.clear()
+        job = CoroutineScope(Dispatchers.Main).launch {
+            delay(mTimer)
+            scanForDevices()
+        }
+    }
+
+    private fun createNotification(targetActivity: Class<MainActivityLib>) {
+        createChannel()
+        startForeground(
+            NOTIFICATION_ID,
+            getNotification(
+                targetActivity,
+                DeviceWayLib.DeviceWayStatus.STANDBY
+            )
+        )
+    }
+
+    private fun createChannel() {
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            CHANNEL_ID,
+            NotificationManager.IMPORTANCE_HIGH
+        )
+
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    private fun getNotification(
+        targetActivity: Class<MainActivityLib>,
+        status: DeviceWayLib.DeviceWayStatus
+    ): Notification {
+//        val notificationIntent = Intent(this, targetActivity)
+//        val pendingIntent = PendingIntent.getActivity(
+//            this,
+//            0,
+//            notificationIntent,
+//            PendingIntent.FLAG_IMMUTABLE
+//        )
+
+//        val notificationLayout = RemoteViews(packageName, R.layout.layout_notification)
+//        notificationLayout.setTextViewText(R.id.tv_status, status.statusText)
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_bluetooth)
+//            .setContentIntent(pendingIntent)
+//            .setCustomContentView(notificationLayout)
+//            .setCustomBigContentView(notificationLayout)
+            .setContentText(status.statusText)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setOngoing(true)
+            .build()
+    }
+
+    private fun updateNotification(
+        targetActivity: Class<MainActivityLib>,
+        status: DeviceWayLib.DeviceWayStatus
+    ) {
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(
+            NOTIFICATION_ID,
+            getNotification(
+                targetActivity,
+                status
+            )
+        )
+    }
+
+    inner class DeviceWayBinder : Binder() {
+        fun getService(): DeviceWayService = this@DeviceWayService
+    }
+
+    companion object {
+        const val IS_DEBUG_EXTRA = "IS_DEBUG_EXTRA"
+        const val TIMER_EXTRA = "TIMER_EXTRA"
+        const val SENSOR_ID_LIST_EXTRA = "SENSOR_ID_LIST_EXTRA"
     }
 }

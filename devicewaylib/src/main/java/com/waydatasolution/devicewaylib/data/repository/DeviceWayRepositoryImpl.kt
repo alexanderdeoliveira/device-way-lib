@@ -2,9 +2,11 @@ package com.waydatasolution.devicewaylib.data.repository
 
 import com.waydatasolution.devicewaylib.data.datasource.DeviceWayLocalDataSource
 import com.waydatasolution.devicewaylib.data.datasource.DeviceWayRemoteDataSource
+import com.waydatasolution.devicewaylib.data.model.BluetoothDevice
 import com.waydatasolution.devicewaylib.data.model.Data
-import com.waydatasolution.devicewaylib.data.model.InitialConfig
-import com.waydatasolution.devicewaylib.data.model.Sample
+import com.waydatasolution.devicewaylib.data.model.NotSendData
+import com.waydatasolution.devicewaylib.data.model.QueryParam
+import com.waydatasolution.devicewaylib.data.model.ResponseStatus
 import com.waydatasolution.devicewaylib.data.model.SendDataRequest
 import com.waydatasolution.devicewaylib.data.model.toDataRequest
 
@@ -13,53 +15,69 @@ internal class DeviceWayRepositoryImpl(
     private val deviceWayRemoteDataSource: DeviceWayRemoteDataSource
 ): DeviceWayRepository {
     override suspend fun saveData(
-        sensorId: String,
-        samples: List<Sample>,
+        device: BluetoothDevice,
         onFinished: () -> Unit
     ) {
         deviceWayLocalDataSource.saveData(
-            sensorId,
-            samples,
+            device,
             onFinished
         )
     }
 
-    override suspend fun getInitialConfig(): InitialConfig {
-        return deviceWayLocalDataSource.getInitialConfig()
+    override suspend fun getCurrentData(
+        sensorId: String
+    ): List<Data>? {
+        return deviceWayLocalDataSource.getCurrentData(sensorId)
     }
 
-    override suspend fun sendData() {
+    override suspend fun getNotSendData(): List<NotSendData> {
+        return deviceWayLocalDataSource.getNotSendData()
+    }
+
+    override suspend fun clearDatabase() {
+        deviceWayLocalDataSource.clearDatabase()
+    }
+
+    override suspend fun sendData(): ResponseStatus {
         val devicesMacList = deviceWayLocalDataSource.getAllDevicesMac()
-        devicesMacList.map {
-            var dataList = deviceWayLocalDataSource.getDataBlockByMac(it)
-            while (dataList.isNotEmpty()) {
-                dataList = if (sendDataPerBlock(dataList)) {
-                    deviceWayLocalDataSource.getDataBlockByMac(it)
-                } else {
-                    listOf()
-                }
-            }
-        }
+        var lastResponse: ResponseStatus = ResponseStatus.Success(200)
+//        devicesMacList.map {
+//            var dataList = deviceWayLocalDataSource.getDataBlockByMac(it)
+//            while (dataList.isNotEmpty()) {
+//                lastResponse = sendDataPerBlock(dataList)
+//                if (lastResponse is ResponseStatus.Success) {
+//                    dataList = deviceWayLocalDataSource.getDataBlockByMac(it)
+//                } else {
+//                    return@map
+//                }
+//            }
+//        }
+
+        return lastResponse
     }
 
-    override suspend fun saveInitialConfig(
-        initialConfig: InitialConfig
-    ) {
-        deviceWayLocalDataSource.saveConfig(
-            initialConfig
-        )
+    override suspend fun saveQueryParams(queryParams: List<QueryParam>) {
+        deviceWayLocalDataSource.saveQueryParams(queryParams)
     }
 
-    private suspend fun sendDataPerBlock(dataList: List<Data>): Boolean {
+    override suspend fun getQueryParams(): List<QueryParam> {
+        return deviceWayLocalDataSource.getQueryParams()
+    }
+
+    override suspend fun getAuthToken(): String {
+        return deviceWayLocalDataSource.getAuthToken()
+    }
+
+    private suspend fun sendDataPerBlock(dataList: List<Data>): ResponseStatus {
         val response = deviceWayRemoteDataSource.sendData(
+            deviceWayLocalDataSource.getQueryParams(),
             SendDataRequest(dataList.toDataRequest())
         )
 
-        return if (response.isSuccessful) {
+        if (response is ResponseStatus.Success) {
             deviceWayLocalDataSource.deleteUntil(dataList.last())
-            true
-        } else {
-            false
         }
+
+        return response
     }
 }

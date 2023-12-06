@@ -4,13 +4,119 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:padding="16dp"
+    tools:context=".MainActivityLib">
 
     <Button
-        android:id="@+id/btnStartScan"
+        android:id="@+id/btn_startScan"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Iniciar"
+        android:text="Iniciar rota - Serviço"
         app:layout_constraintTop_toTopOf="parent"/>
+
+    <Button
+        android:id="@+id/btn_finish"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Finalizar rota"
+        android:layout_marginTop="20dp"
+        app:layout_constraintTop_toBottomOf="@+id/btn_startScan"/>
+
+    <Button
+        android:id="@+id/btn_get_not_send_data"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Buscar dados não enviados"
+        android:layout_marginTop="20dp"
+        app:layout_constraintTop_toBottomOf="@+id/btn_finish"/>
+
+    <Button
+        android:id="@+id/btn_start_live_scan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Iniciar leitura sincrona"
+        android:layout_marginTop="20dp"
+        app:layout_constraintTop_toBottomOf="@+id/btn_get_not_send_data"/>
+
+    <TextView
+        android:id="@+id/tv_status_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:text="Status: "
+        android:layout_marginTop="20dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_start_live_scan"/>
+
+    <TextView
+        android:id="@+id/tv_status_value"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        tools:text="40º"
+        android:text="-"
+        android:layout_marginTop="20dp"
+        app:layout_constraintStart_toEndOf="@+id/tv_status_label"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_start_live_scan"/>
+
+    <TextView
+        android:id="@+id/tv_temperature_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:text="Temperatura atual: "
+        android:layout_marginTop="20dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_status_label"/>
+
+    <TextView
+        android:id="@+id/tv_temperature_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:text="40º"
+        android:text="-"
+        android:layout_marginTop="20dp"
+        app:layout_constraintStart_toEndOf="@+id/tv_temperature_label"
+        app:layout_constraintTop_toBottomOf="@id/tv_status_label"/>
+
+    <TextView
+        android:id="@+id/tv_humidity_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:text="Umidade atual: "
+        android:layout_marginTop="20dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_temperature_value"/>
+
+    <TextView
+        android:id="@+id/tv_humidity_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="-"
+        tools:text="50%"
+        android:layout_marginTop="20dp"
+        app:layout_constraintStart_toEndOf="@+id/tv_humidity_label"
+        app:layout_constraintTop_toBottomOf="@id/tv_temperature_value"/>
+
+    <TextView
+        android:id="@+id/tv_not_send_data_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:text="Dados não enviados: "
+        android:layout_marginTop="20dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_humidity_value"/>
+
+    <TextView
+        android:id="@+id/tv_not_send_data_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="-"
+        tools:text="50%"
+        android:layout_marginTop="20dp"
+        app:layout_constraintStart_toEndOf="@+id/tv_not_send_data_label"
+        app:layout_constraintTop_toBottomOf="@id/tv_humidity_value"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

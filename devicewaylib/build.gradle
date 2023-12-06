@@ -24,7 +24,8 @@ android {
             }
         }
 
-        buildConfigField "String", "BASE_URL", "\"https://wayds.net:8081/entregaway/\""
+        buildConfigField "String", "BASE_URL_PRD", "\"https://restrito.waydatasolution.com.br/entregaway/\""
+        buildConfigField "String", "BASE_URL_HMG", "\"https://wayds.net:8081/entregaway/\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -50,6 +51,10 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.5.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.core:core-ktx:+'
 
     def room_version = "2.5.0"
     def gson_version = "2.9.0"
@@ -57,9 +62,6 @@ dependencies {
     def live_data_core = "2.6.2"
     def retrofit_version = "2.9.0"
     def okhttp_version = "4.10.0"
-    def data_store_version = "1.0.0"
-
-    implementation 'androidx.core:core-ktx:+'
 
     // Room
     implementation "androidx.room:room-runtime:$room_version"
@@ -83,7 +85,4 @@ dependencies {
     //OkHttp
     implementation("com.squareup.okhttp3:okhttp:$okhttp_version")
     implementation("com.squareup.okhttp3:logging-interceptor:$okhttp_version")
-
-    // DataStore
-    implementation "androidx.datastore:datastore-preferences:$data_store_version"
 }

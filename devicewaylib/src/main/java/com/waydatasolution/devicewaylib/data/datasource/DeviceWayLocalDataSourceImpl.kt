@@ -1,46 +1,74 @@
 package com.waydatasolution.devicewaylib.data.datasource
 
-import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
 import com.waydatasolution.devicewaylib.data.dao.DataDao
 import com.waydatasolution.devicewaylib.data.dao.MissionDao
+import com.waydatasolution.devicewaylib.data.dao.QueryParamDao
+import com.waydatasolution.devicewaylib.data.model.BluetoothDevice
 import com.waydatasolution.devicewaylib.data.model.Data
-import com.waydatasolution.devicewaylib.data.model.InitialConfig
+import com.waydatasolution.devicewaylib.data.model.NotSendData
 import com.waydatasolution.devicewaylib.data.model.Mission
+import com.waydatasolution.devicewaylib.data.model.QueryParam
 import com.waydatasolution.devicewaylib.data.model.Sample
 import com.waydatasolution.devicewaylib.data.model.toDataModel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import java.util.Date
 
 internal class DeviceWayLocalDataSourceImpl(
-    private val context: Context,
     private val missionDao: MissionDao,
-    private val dataDao: DataDao
+    private val dataDao: DataDao,
+    private val queryParamDao: QueryParamDao
 ): DeviceWayLocalDataSource {
 
     override suspend fun saveData(
-        sensorId: String,
-        samples: List<Sample>,
+        device: BluetoothDevice,
         onFinished: () -> Unit
     ) {
-        val missionList = missionDao.getLastMissionOfId(sensorId)
-        if (missionList.isNotEmpty()) {
-            val currentMission = missionList[0]
-            if (currentMission.timestamp != samples[0].timestamp.time || currentMission.samplesCount != samples.size) {
-                save(sensorId, samples)
+        var mission = missionDao.getMissionById(device.SN)
+        if (mission != null) {
+            if (mission.timestamp != device.samples[0].timestamp.time || mission.samplesCount != device.samples.size) {
+                save(device.SN, device.samples)
             }
         } else {
-            val mission = Mission(sensorId, samples[0].timestamp.time, samples.size)
+            mission = Mission(device.SN, device.samples[0].timestamp.time, device.samples.size)
             missionDao.insert(mission)
-            save(sensorId, samples)
+            save(device.SN, device.samples)
         }
 
+        saveCurrentSample(device)
+
         onFinished.invoke()
+    }
+
+    override suspend fun getCurrentData(
+        sensorId: String
+    ): List<Data>? {
+        return dataDao.getCurrentData(sensorId)
+    }
+
+    override suspend fun getNotSendData(): List<NotSendData> {
+        val notSendDataList = mutableListOf<NotSendData>()
+        val devices = dataDao.getAllMacs()
+        devices.map { mac ->
+            val dataList = dataDao.getAllByMac(mac)
+            notSendDataList.add(
+                NotSendData(
+                    mac = mac,
+                    dataList = dataList
+                )
+            )
+        }
+
+        return notSendDataList
+    }
+
+    private suspend fun saveCurrentSample(device: BluetoothDevice) {
+        val currentSample = Sample(
+            position = 0,
+            timestamp = Date(),
+            temperature = device.Temperature,
+            humidity = device.Humidity
+        )
+
+        save(device.SN, listOf(currentSample))
     }
 
     override suspend fun getAllDevicesMac(): List<String> {
@@ -48,11 +76,23 @@ internal class DeviceWayLocalDataSourceImpl(
     }
 
     override suspend fun getDataBlockByMac(mac: String): List<Data> {
-        return dataDao.getAll(mac)
+        return dataDao.getDataBlockByMac(mac)
     }
 
     override suspend fun deleteUntil(data: Data) {
-        dataDao.deleteUntil(data.id)
+        dataDao.deleteUntil(data.date)
+    }
+
+    override suspend fun saveQueryParams(queryParams: List<QueryParam>) {
+        queryParamDao.insert(queryParams)
+    }
+
+    override suspend fun getQueryParams(): List<QueryParam> {
+        return queryParamDao.getAll()
+    }
+
+    override suspend fun getAuthToken(): String {
+        return queryParamDao.getAuthToken()
     }
 
     private suspend fun save(
@@ -67,59 +107,9 @@ internal class DeviceWayLocalDataSourceImpl(
         dataDao.insert(dataList)
     }
 
-    override suspend fun saveConfig(initialConfig: InitialConfig) {
-        context.dataStore.edit { prefs ->
-            prefs[AUTH_TOKEN_KEY] = initialConfig.authToken
-            prefs[ESTAB_CODE_KEY] = initialConfig.estabCode
-            prefs[ROUTE_CODE_KEY] = initialConfig.routeCode
-            prefs[DRIVER_CODE_KEY] = initialConfig.driverCode
-            prefs[SENSOR_CODE_KEY] = initialConfig.sensorCode
-        }
-    }
-
-    override suspend fun getInitialConfig(): InitialConfig {
-        val authToken = context.dataStore.data.map { prefs ->
-            prefs[AUTH_TOKEN_KEY] ?: ""
-        }.first()
-
-        val estabCode = context.dataStore.data.map { prefs ->
-            prefs[ESTAB_CODE_KEY] ?: 0
-        }.first()
-
-        val routeCode = context.dataStore.data.map { prefs ->
-            prefs[ROUTE_CODE_KEY] ?: 0
-        }.first()
-
-        val driverCode = context.dataStore.data.map { prefs ->
-            prefs[DRIVER_CODE_KEY] ?: 0
-        }.first()
-
-        val sensorCode = context.dataStore.data.map { prefs ->
-            prefs[SENSOR_CODE_KEY] ?: 0
-        }.first()
-
-        return InitialConfig(
-            authToken = authToken,
-            estabCode = estabCode,
-            routeCode = routeCode,
-            driverCode = driverCode,
-            sensorCode = sensorCode
-        )
-    }
-
-    companion object {
-        private const val authTokenKey = "authTokenKey"
-        private const val estabCodeKey = "estabCodeKey"
-        private const val routeCodeKey = "routeCodeKey"
-        private const val driverCodeKey = "driverCodeKey"
-        private const val sensorCodeKey = "sensorCodeKey"
-
-        val AUTH_TOKEN_KEY = stringPreferencesKey(authTokenKey)
-        val ESTAB_CODE_KEY = intPreferencesKey(estabCodeKey)
-        val ROUTE_CODE_KEY = intPreferencesKey(routeCodeKey)
-        val DRIVER_CODE_KEY = intPreferencesKey(driverCodeKey)
-        val SENSOR_CODE_KEY = intPreferencesKey(sensorCodeKey)
-
-        private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "com.deviceway.shared.preferences")
+    override suspend fun clearDatabase() {
+        dataDao.deleteAll()
+        missionDao.deleteAll()
+        queryParamDao.deleteAll()
     }
 }

@@ -1,8 +1,9 @@
-package com.waydatasolution.devicewaylib
+package com.waydatasolution.devicewaylib.worker
 
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.waydatasolution.devicewaylib.data.model.ResponseStatus
 import com.waydatasolution.devicewaylib.domain.ServiceLocatorImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,12 +13,14 @@ internal class SendDataWorker(
     workerParams: WorkerParameters
 ): CoroutineWorker(context, workerParams) {
 
-    private val serviceLocator by lazy { ServiceLocatorImpl.getInstance(context) }
+    private val serviceLocator by lazy { ServiceLocatorImpl.getInstance(context, inputData.getBoolean(IS_TEST_KEY, true)) }
 
     override suspend fun doWork(): Result {
         return try {
+            inputData
             withContext(Dispatchers.IO) {
-                return@withContext if (serviceLocator.sendDataUseCase()) {
+                val response = serviceLocator.sendDataUseCase()
+                return@withContext if (response is ResponseStatus.Success) {
                     Result.success()
                 } else {
                     Result.failure()
@@ -26,5 +29,9 @@ internal class SendDataWorker(
         } catch (e: Exception) {
             Result.failure()
         }
+    }
+
+    companion object {
+        const val IS_TEST_KEY = "IS_TEST_KEY"
     }
 }

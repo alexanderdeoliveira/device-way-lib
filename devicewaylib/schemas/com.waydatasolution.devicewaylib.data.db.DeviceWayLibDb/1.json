@@ -2,18 +2,12 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "cfee63b0841d7557b14b7bb6a53f5b10",
+    "identityHash": "8f51e23ffa0fcbcb4eeccdb966fa0a12",
     "entities": [
       {
         "tableName": "Data",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `value` REAL NOT NULL, `mac` TEXT NOT NULL, `date` INTEGER NOT NULL, `type` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`value` REAL NOT NULL, `mac` TEXT NOT NULL, `date` INTEGER NOT NULL, `type` TEXT NOT NULL, PRIMARY KEY(`mac`, `date`, `type`))",
         "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
           {
             "fieldPath": "value",
             "columnName": "value",
@@ -35,14 +29,16 @@
           {
             "fieldPath": "type",
             "columnName": "type",
-            "affinity": "INTEGER",
+            "affinity": "TEXT",
             "notNull": true
           }
         ],
         "primaryKey": {
-          "autoGenerate": true,
+          "autoGenerate": false,
           "columnNames": [
-            "id"
+            "mac",
+            "date",
+            "type"
           ]
         },
         "indices": [],
@@ -81,12 +77,38 @@
         },
         "indices": [],
         "foreignKeys": []
+      },
+      {
+        "tableName": "QueryParam",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `value` TEXT NOT NULL, PRIMARY KEY(`key`))",
+        "fields": [
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cfee63b0841d7557b14b7bb6a53f5b10')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8f51e23ffa0fcbcb4eeccdb966fa0a12')"
     ]
   }
 }

@@ -1,22 +1,25 @@
 package com.waydatasolution.devicewaylib.data.model
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
+import com.waydatasolution.devicewaylib.util.toDatetime
 
-@Entity
-internal data class Data(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int,
+@Entity(primaryKeys = ["mac","date","type"])
+data class Data(
+    @SerializedName("value")
     val value: Double,
+    @SerializedName("mac")
     val mac: String,
+    @SerializedName("date")
     val date: Long,
-    val type: Int
+    @SerializedName("type")
+    val type: String,
 )
 
 internal fun List<Data>.toDataRequest(): List<DataRequest> {
     return this.map {
         DataRequest(
-            date = it.date,
+            date = it.date.toDatetime(),
             value = it.value,
             type = it.type
         )

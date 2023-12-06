@@ -13,7 +13,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 internal class DeviceWayNetworkModule(
-    private val context: Context
+    private val context: Context,
+    private val isDebug: Boolean
 ) {
     private lateinit var deviceWayClient: DeviceWayClient
 
@@ -26,7 +27,7 @@ internal class DeviceWayNetworkModule(
             .readTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
             .connectTimeout(CONNECT_TIMEOUT, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
-            .addInterceptor(DeviceWayInterceptor(context))
+            .addInterceptor(DeviceWayInterceptor(context, isDebug))
             .apply {
                 if (BuildConfig.DEBUG) {
                     addInterceptor(getHttpLoggingInterceptor())
@@ -34,10 +35,15 @@ internal class DeviceWayNetworkModule(
             }
             .build()
 
+        val baseUrl = if (isDebug) {
+            BuildConfig.BASE_URL_HMG
+        } else {
+            BuildConfig.BASE_URL_PRD
+        }
         val retrofit = Retrofit.Builder()
             .addConverterFactory(GsonConverterFactory.create(Gson()))
             .client(client)
-            .baseUrl(BuildConfig.BASE_URL)
+            .baseUrl(baseUrl)
             .build()
 
         deviceWayClient = retrofit.create(DeviceWayClient::class.java)

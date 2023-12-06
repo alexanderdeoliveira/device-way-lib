@@ -1,17 +1,26 @@
 package com.waydatasolution.devicewaylib.data.repository
 
-import com.waydatasolution.devicewaylib.data.model.InitialConfig
-import com.waydatasolution.devicewaylib.data.model.Sample
+import com.waydatasolution.devicewaylib.data.model.BluetoothDevice
+import com.waydatasolution.devicewaylib.data.model.Data
+import com.waydatasolution.devicewaylib.data.model.NotSendData
+import com.waydatasolution.devicewaylib.data.model.QueryParam
+import com.waydatasolution.devicewaylib.data.model.ResponseStatus
 
 internal interface DeviceWayRepository {
     suspend fun saveData(
-        sensorId: String,
-        samples: List<Sample>,
+        device: BluetoothDevice,
         onFinished: () -> Unit
     )
-    suspend fun sendData()
-    suspend fun saveInitialConfig(
-        initialConfig: InitialConfig
+    suspend fun sendData(): ResponseStatus
+    suspend fun saveQueryParams(
+        queryParams: List<QueryParam>
     )
-    suspend fun getInitialConfig(): InitialConfig
+    suspend fun getQueryParams(): List<QueryParam>
+    suspend fun getAuthToken(): String
+    suspend fun getCurrentData(
+        sensorId: String
+    ): List<Data>?
+
+    suspend fun getNotSendData(): List<NotSendData>
+    suspend fun clearDatabase()
 }
