@@ -14,7 +14,7 @@ internal class ReadDataUseCaseImpl: ReadDataUseCase {
         onFinished: () -> Unit
     ) {
         BluetoothReader(context, bluetoothAdapter).apply {
-            readBluetoothSamples(device, SamplesPeriod.READ_LAST_DAY_SAMPLES) { list, success, isFinished ->
+            readBluetoothSamples(device, SamplesPeriod.READ_LAST_TREE_DAYS_SAMPLES) { list, success, isFinished ->
                 if (success) {
                     if (!list.isNullOrEmpty()) {
                         device.samples.addAll(list)

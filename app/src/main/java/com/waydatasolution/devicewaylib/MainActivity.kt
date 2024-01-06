@@ -20,7 +20,7 @@ class MainActivity : AppCompatActivity() {
         setupListeners()
 
         DeviceWayLib.init(
-            application,
+            applicationContext,
             false,
             queryParams = mapOf(
                 Pair("authToken", "eyJhbGciOiJodHRwOi8vd3d3LnczLm9yZy8yMDAxLzA0L3htbGRzaWctbW9yZSNobWFjLXNoYTUxMiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3VzZXJkYXRhIjoiSUJJWDRybUFEMlcxUFBqWG1YRGNJNG8wc1NNdkpwaVNsb3BiejVsUEJ4dGRUSjlMUU0rcHRyRmorZTFWREVPRzFOc0RtSjFpeTdFQWNEYjJndTlVN1RmZElPdU9ya3FGMGhTcUZWNGRBTVpra3hrZ0h1VFlzU0VnUm5KTE1PdnZuVWwrcDlhaUx3bkJzRFVVeDRJVXpoU1h3M3JWVEFoRmdUY0szTktiSkRVPSQwMDBFRzlXMlF0T0dTbVpSSDVKRGtBPT0iLCJuYmYiOjE2OTgzNTA5MjgsImV4cCI6MTcyOTk3NDIyOCwiaXNzIjoiQXV0aEFQSSIsImF1ZCI6IkVudHJlZ2FXYXkifQ.OVMOVb9gLzw7qxOE4vYl1-N1nfoKFJxUnUVUfn4IZQmOtJDyd2A9EF_Ei_5KvQmm3y7xvBWeGoXxGqy467-Oug"),
@@ -62,7 +62,7 @@ class MainActivity : AppCompatActivity() {
                 arrayListOf(
                     "11407170"
                 ),
-                600000L
+                10000L
             )
 
             getCurrentData(this@MainActivity)

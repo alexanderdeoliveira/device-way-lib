@@ -3,6 +3,7 @@ package com.waydatasolution.devicewaylib
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.util.Log
 import com.TZONE.Bluetooth.BLE
 import com.TZONE.Bluetooth.ILocalBluetoothCallBack
 import com.TZONE.Bluetooth.Temperature.BroadcastService
@@ -81,8 +82,9 @@ class DeviceWayLive(
         val device = BluetoothDevice()
         device.fromScanData(ble)
 
-        if (!device.SN.isNullOrEmpty()) {
+        if (!device.SN.isNullOrEmpty() && sensorIdList.contains(device.SN)) {
             deviceList.add(Pair(device.SN, device))
+            log("Dispositivo encontrado: ${device.SN}")
             if (sensorIdList.size == deviceList.size) {
                 broadcastService.StopScan()
                 onComplete()
@@ -144,8 +146,13 @@ class DeviceWayLive(
     }
 
     private fun updateStatus(statusText: String) {
+        log(statusText)
         CoroutineScope(Dispatchers.Main.immediate).launch {
             callbackStatus.invoke(statusText)
         }
+    }
+
+    private fun log(message: String) {
+        Log.i("DeviceWay", message)
     }
 }

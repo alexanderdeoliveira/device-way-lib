@@ -6,7 +6,7 @@ project.afterEvaluate {
             maven(MavenPublication) {
                 groupId = 'com.waydatasolution'
                 artifactId = 'device-way-lib'
-                version = '0.0.1-rc14'
+                version = '0.0.1-rc19'
                 artifact "$buildDir/outputs/aar/devicewaylib-debug.aar"
 
                 pom {

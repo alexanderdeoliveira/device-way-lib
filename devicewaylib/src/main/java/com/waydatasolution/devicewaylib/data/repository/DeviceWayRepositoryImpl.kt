@@ -41,17 +41,17 @@ internal class DeviceWayRepositoryImpl(
     override suspend fun sendData(): ResponseStatus {
         val devicesMacList = deviceWayLocalDataSource.getAllDevicesMac()
         var lastResponse: ResponseStatus = ResponseStatus.Success(200)
-//        devicesMacList.map {
-//            var dataList = deviceWayLocalDataSource.getDataBlockByMac(it)
-//            while (dataList.isNotEmpty()) {
-//                lastResponse = sendDataPerBlock(dataList)
-//                if (lastResponse is ResponseStatus.Success) {
-//                    dataList = deviceWayLocalDataSource.getDataBlockByMac(it)
-//                } else {
-//                    return@map
-//                }
-//            }
-//        }
+        devicesMacList.map {
+            var dataList = deviceWayLocalDataSource.getDataBlockByMac(it)
+            while (dataList.isNotEmpty()) {
+                lastResponse = sendDataPerBlock(dataList)
+                if (lastResponse is ResponseStatus.Success) {
+                    dataList = deviceWayLocalDataSource.getDataBlockByMac(it)
+                } else {
+                    return@map
+                }
+            }
+        }
 
         return lastResponse
     }
